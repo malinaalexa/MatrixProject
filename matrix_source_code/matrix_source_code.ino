@@ -75,8 +75,7 @@ void setup() {
   THIGHSCORE = EEPROM.read(21);
   lcd.begin(16, 2);
   lcd.clear();
-
-  Serial.begin(9600);
+ // Serial.begin(9600);
   lcd.createChar(0, logo);
   lcd.home();
   lcd.setCursor(2, 0);
@@ -135,7 +134,7 @@ void loop() {
 void generateRandomWalls(byte targetMatrix[matrixSize][matrixSize]) {
   randomSeed(analogRead(5));
   if (LEVEL == 1) {  //generate an easier map - walls only in the opposite corner of the player and a lot of time
-    TIMER = 120000;  //2 minutes
+    TIMER = 40000;  //30 sec
     MODIFIER = 1;
     for (int row = 4; row < matrixSize; row++) {
       for (int col = 4; col < matrixSize; col++)
@@ -149,7 +148,7 @@ void generateRandomWalls(byte targetMatrix[matrixSize][matrixSize]) {
   }
   if (LEVEL == 2) {
     MODIFIER = 10;
-    TIMER = 120000;  //2 minutes. more walls
+    TIMER = 45000;  //30 sec
     for (int row = 2; row < matrixSize; row++) {
       for (int col = 2; col < matrixSize; col++)
         if (row == 0 && col == 0 || row == 1 && col == 0 || row == 0 && col == 1 || row == 1 && col == 1) {
@@ -205,7 +204,6 @@ void updatePositions() {
 }
 
 void placebomb(int x, int y) {
-  Serial.print("IN FUNCTIE");
 
   // Update the player. The bomb is placed in the current position of the player so they player is moved in an available neighbour empty space
   displayText("This is a dream", "Bombs = harmless");
@@ -345,6 +343,20 @@ void handleSubMenu(int currentMenuState) {
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print(THIGHSCORE);
+      swState = digitalRead(swPin);
+      if (swState != lastSwState){
+      if (swState == LOW) {swPressTime = millis();}
+      else
+      if(millis()-swPressTime > 1000)
+      {
+        THIGHSCORE = 0;
+        EEPROM.update(21, 0);
+        lcd.clear(); 
+        lcd.print("reset highscore");
+        delay(200);
+        lcd.clear();
+        lcd.print(THIGHSCORE);
+      lastSwState = swState;}}
       break;
     case 2:
       displayText("WORK IN ", "PROGRESS");
