@@ -51,6 +51,7 @@ unsigned long lastJoyMoveTime = 0;
 const int debounceDelay = 250;
 
 int currentMenuState = 0;
+int oneSecond = 0;
 byte logo[] = {
   B00010,
   B00100,
@@ -63,7 +64,7 @@ byte logo[] = {
 };
 int timeElapsed = 0;
 int LEVEL = 0;
-int TIMER = 300000;
+int const TIMER = 5000;
 int SCORE = 0;
 int MODIFIER = 0;
 int THIGHSCORE = 0;
@@ -75,7 +76,7 @@ void setup() {
   THIGHSCORE = EEPROM.read(21);
   lcd.begin(16, 2);
   lcd.clear();
- // Serial.begin(9600);
+ Serial.begin(9600);
   lcd.createChar(0, logo);
   lcd.home();
   lcd.setCursor(2, 0);
@@ -87,6 +88,7 @@ void setup() {
   delay(2000);
   lcd.clear();
   show_menu();
+
 }
 void setup_game() {
   xPos = yPos = 0;
@@ -94,11 +96,13 @@ void setup_game() {
   lc.setIntensity(0, matrixBrightness);  // Set the brightness level
   lc.clearDisplay(0);                    // Clear the display initially
   matrix[xPos][yPos] = 1;
-  LEVEL = EEPROM.read(20);  // Turn on the initial LED position
+  if(LEVEL == 0) LEVEL = 1;
+  else
+  LEVEL = EEPROM.read(20);  
   generateRandomWalls(matrix);
   updateMatrix();
   gameStarted = true;
-  timeElapsed = millis();
+  timeElapsed=0;
 }
 
 void loop() {
@@ -122,6 +126,7 @@ void loop() {
 
   if (gameStarted) {
     in_game();
+
   } else {
     if (THIGHSCORE < SCORE) {
       THIGHSCORE = SCORE;
@@ -133,8 +138,10 @@ void loop() {
 }
 void generateRandomWalls(byte targetMatrix[matrixSize][matrixSize]) {
   randomSeed(analogRead(5));
+  if(LEVEL = 0) LEVEL = 1;
+  else
+  LEVEL = EEPROM.read(20);  // Turn on the initial LED position
   if (LEVEL == 1) {  //generate an easier map - walls only in the opposite corner of the player and a lot of time
-    TIMER = 40000;  //30 sec
     MODIFIER = 1;
     for (int row = 4; row < matrixSize; row++) {
       for (int col = 4; col < matrixSize; col++)
@@ -148,7 +155,6 @@ void generateRandomWalls(byte targetMatrix[matrixSize][matrixSize]) {
   }
   if (LEVEL == 2) {
     MODIFIER = 10;
-    TIMER = 45000;  //30 sec
     for (int row = 2; row < matrixSize; row++) {
       for (int col = 2; col < matrixSize; col++)
         if (row == 0 && col == 0 || row == 1 && col == 0 || row == 0 && col == 1 || row == 1 && col == 1) {
@@ -161,7 +167,6 @@ void generateRandomWalls(byte targetMatrix[matrixSize][matrixSize]) {
   }
   if (LEVEL == 3) {
     MODIFIER = 20;
-    TIMER = 45000;  // 45 SECONDS. more walls. Made it so short to be hardcore and to prove the dying mechanic works xd
     for (int row = 1; row < matrixSize; row++) {
       for (int col = 1; col < matrixSize; col++)
         if (row == 0 && col == 0 || row == 1 && col == 0 || row == 0 && col == 1 || row == 1 && col == 1) {
@@ -201,6 +206,7 @@ void updatePositions() {
     matrix[xLastPos][yLastPos] = 0;  // Turn off the LED at the last position
     matrix[xPos][yPos] = 1;          // Turn on the LED at the new position
   }
+  
 }
 
 void placebomb(int x, int y) {
@@ -382,6 +388,14 @@ void displayText(const char *line1, const char *line2) {
 }
 
 void in_game() {
+  timeElapsed++;
+  delay(10);
+  check_win();
+  LEVEL=EEPROM.read(20);
+  if (timeElapsed > TIMER)
+    game_over();
+  Serial.println(timeElapsed);
+
   if (millis() - lastMoved > moveInterval) {
     updatePositions();     // Update the LED position based on joystick input
     lastMoved = millis();  // Reset the movement timer
@@ -413,25 +427,9 @@ void in_game() {
       if (matrix[row][col] == 2) {
         lc.setLed(0, row, col, millis() % 200 < 250);
       }
-  check_win();
-  if (millis() - timeElapsed > TIMER)
-    game_over();
+
 }
 
-void game_over() {
-  check_win();
-  lc.clearDisplay(0);
-  displayText("GAME", "OVER");
-  delay(1000);
-  lcd.clear();
-  displayText("You missed", "your alarm");
-  delay(1000);
-  lcd.clear();
-  displayText("You are fired", ":(");
-  delay(500);
-  gameStarted = false;
-  show_menu();
-}
 
 void check_win() {
 
@@ -466,15 +464,17 @@ void WIN() {
     lcd.clear();
   }
 
-  if (LEVEL == 1 && millis() - timeElapsed > 1000) {
+  if (LEVEL == 1) {
     displayText("CONGRATS!", "NIGHT 2...");
+    LEVEL = 2;
     EEPROM.update(20, 2);
     setup_game();
-  } else if (LEVEL == 2 && millis() - timeElapsed > 1000) {
+  } else if (LEVEL == 2) {
     displayText("CONGRATS!", "NIGHT 3...");
+    LEVEL = 3;
     EEPROM.update(20, 3);
     setup_game();
-  } else if (LEVEL == 3 && millis() - timeElapsed > 300) {
+  } else if (LEVEL == 3) {
     displayText("BUZZ", "???");
     delay(600);
     lcd.clear();
@@ -487,4 +487,21 @@ void WIN() {
     lc.clearDisplay(0);
     gameStarted = false;
   }
+}
+
+void game_over() {
+  timeElapsed = 0;
+  check_win();
+  LEVEL = 0;
+  lc.clearDisplay(0);
+  displayText("GAME", "OVER");
+  delay(1000);
+  lcd.clear();
+  displayText("You missed", "your alarm");
+  delay(1000);
+  lcd.clear();
+  displayText("You are fired", ":(");
+  delay(500);
+  gameStarted = false;
+  show_menu();
 }
