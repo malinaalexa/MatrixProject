@@ -1,4 +1,6 @@
-# MatrixProject
+# MatrixProject - Steica Malina Alexa, 361 
+## Course: Introduction to Robotics (2023 - 2024)
+
 # StressMaze Meltdown
 In this game, you are a stressed out student who is working full time. You are pretty normal and boring. However, you have nightmares every night about being trapped in a labyrinth with no exit and a task: break all the walls to escape and wake up. Do so before you miss your alarm - if you don't wake up in time you will be late and this would probably lead to being fired.
 
